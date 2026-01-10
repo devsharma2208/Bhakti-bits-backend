@@ -1,0 +1,185 @@
+{
+  "version": 1,
+  "updatedAt": "2024-01-15T12:00:00Z",
+  "categories": [
+    {
+      "id": "ram-bhajans",
+      "name": "Ram Bhajans",
+      "description": "Devotional songs dedicated to Lord Ram",
+      "artworkUrl": "https://photosweek.in/wp-content/uploads/jai-shree-ram-bajrang-dal-dp.jpg",
+      "trackCount": 5
+    },
+    {
+      "id": "test",
+      "name": "Test",
+      "description": "Test category with sample tracks",
+      "artworkUrl": "https://picsum.photos/seed/test-cat/400",
+      "trackCount": 3
+    },
+    {
+      "id": "recordings",
+      "name": "My Recordings",
+      "description": "Your personal audio recordings",
+      "artworkUrl": "https://picsum.photos/seed/recordings-cat/400",
+      "trackCount": 0
+    },
+    {
+      "id": "086dfe36-1146-4c7e-982c-accf07d33c53",
+      "name": "Ram Bhajans236",
+      "description": "Devotional songs dedicated to Lord Ram",
+      "artworkUrl": "https://photosweek.in/wp-content/uploads/jai-shree-ram-bajrang-dal-dp.jpg",
+      "trackCount": 5
+    }
+  ],
+  "tracks": [
+    {
+      "id": "t11",
+      "title": "Shri Ram Stuti --",
+      "artist": "Traditional",
+      "album": "Ram Bhakti",
+      "artworkUrl": "https://res.cloudinary.com/dyfswujzb/image/upload/v1767464267/ram_ijjc7i.png",
+      "audioUrl": "https://res.cloudinary.com/dyfswujzb/video/upload/v1767464173/Shri_Ram_Chandra_Kripalu_Bhajaman_rjvsgm.mp3",
+      "durationMs": 180000,
+      "categoryId": "ram-bhajans",
+      "transcript": [
+        {
+          "type": "plain",
+          "content": "श्री रामचन्द्र कृपालु भज मन हरण भव भय दारुणम्। नव कंज लोचन कंज मुख कर कंज पद कंजारुणम्॥",
+          "language": "hi"
+        },
+        {
+          "type": "lrc",
+          "content": "[00:00.00] श्री रामचन्द्र कृपालु भज मन\n[00:10.00] हरण भव भय दारुणम्\n[00:20.00] नव कंज लोचन कंज मुख\n[00:30.00] कर कंज पद कंजारुणम्",
+          "language": "hi"
+        }
+      ],
+      "tags": ["bhajan", "ram", "stuti", "devotional"],
+      "updatedAt": "2024-01-15T12:00:00Z"
+    },
+    {
+      "id": "bh1",
+      "title": "Bhajle Mann Tu Ram",
+      "artist": "Gayatri Pariwar",
+      "album": "Bhakti Collection",
+      "artworkUrl": "https://photosweek.in/wp-content/uploads/jai-shree-ram-bajrang-dal-dp.jpg",
+      "audioUrl": "https://res.cloudinary.com/dyfswujzb/video/upload/v1767495947/Bhajle-Mann-Tu-Ram-%E0%A4%AD%E0%A4%9C-%E0%A4%B2%E0%A5%87-%E0%A4%AE%E0%A4%A8-%E0%A4%A4%E0%A5%82-%E0%A4%B0%E0%A4%BE%E0%A4%AE_AlokSahdev_ed4eye.mp3",
+      "durationMs": 425000,
+      "categoryId": "ram-bhajans",
+      "transcript": [
+        {
+          "type": "plain",
+          "content": "भज ले मन तू राम, जीवन का सच्चा सहारा।",
+          "language": "hi"
+        },
+        {
+          "type": "lrc",
+          "content": "[00:00.00] भज ले मन तू राम\n[00:08.00] जीवन का सच्चा सहारा\n[00:16.00] हर श्वास में ले नाम\n[00:24.00] मिट जाए हर अंधियारा",
+          "language": "hi"
+        }
+      ],
+      "tags": ["devotional", "bhajan", "ram"],
+      "updatedAt": "2024-01-15T12:00:00Z"
+    },
+    {
+      "id": "bh10",
+      "title": "Ram Geet Gunjan (Archive 1)",
+      "artist": "Shri Ram Parivar",
+      "album": "Ram Bhakti",
+      "artworkUrl": "https://picsum.photos/seed/ram1/4000",
+      "audioUrl": "https://res.cloudinary.com/dyfswujzb/video/upload/v1767464173/Shri_Ram_Chandra_Kripalu_Bhajaman_rjvsgm.mp3",
+      "durationMs": 260000,
+      "categoryId": "ram-bhajans",
+      "transcript": [],
+      "tags": ["ram", "bhajan"],
+      "updatedAt": "2024-01-15T12:00:00Z"
+    },
+    {
+      "id": "bh11",
+      "title": "Ram Geet Gunjan (Archive 2)",
+      "artist": "Shri Ram Parivar",
+      "album": "Ram Bhakti",
+      "artworkUrl": "https://picsum.photos/seed/ram2/4000",
+      "audioUrl": "https://res.cloudinary.com/dyfswujzb/video/upload/v1767495947/Bhajle-Mann-Tu-Ram-%E0%A4%AD%E0%A4%9C-%E0%A4%B2%E0%A5%87-%E0%A4%AE%E0%A4%A8-%E0%A4%A4%E0%A5%82-%E0%A4%B0%E0%A4%BE%E0%A4%AE_AlokSahdev_ed4eye.mp3",
+      "durationMs": 260000,
+      "categoryId": "ram-bhajans",
+      "transcript": [],
+      "tags": ["ram", "bhajan"],
+      "updatedAt": "2024-01-15T12:00:00Z"
+    },
+    {
+      "id": "bh19",
+      "title": "Archive Ram Bhajan Remix",
+      "artist": "Archive Devotional",
+      "album": "Devotionals",
+      "artworkUrl": "https://picsum.photos/seed/ram5/4000",
+      "audioUrl": "https://res.cloudinary.com/dyfswujzb/video/upload/v1767464173/Shri_Ram_Chandra_Kripalu_Bhajaman_rjvsgm.mp3",
+      "durationMs": 260000,
+      "categoryId": "ram-bhajans",
+      "transcript": [],
+      "tags": ["ram", "devotional"],
+      "updatedAt": "2024-01-15T12:00:00Z"
+    },
+    {
+      "id": "test1",
+      "title": "Test Track One",
+      "artist": "Test Artist",
+      "album": "Test Album",
+      "artworkUrl": "https://picsum.photos/seed/test1/4000",
+      "audioUrl": "https://res.cloudinary.com/dyfswujzb/video/upload/v1767464173/Shri_Ram_Chandra_Kripalu_Bhajaman_rjvsgm.mp3",
+      "durationMs": 180000,
+      "categoryId": "test",
+      "transcript": [
+        {
+          "type": "plain",
+          "content": "Test track one content",
+          "language": "en"
+        },
+        {
+          "type": "lrc",
+          "content": "[00:00.00] Test line one for timing\n[00:07.50] Second line appears here\n[00:15.00] Third sample line for the test track",
+          "language": "en"
+        }
+      ],
+      "tags": ["test"],
+      "updatedAt": "2024-01-15T12:00:00Z"
+    },
+    {
+      "id": "test2",
+      "title": "Test Track Two",
+      "artist": "Test Artist",
+      "album": "Test Album",
+      "artworkUrl": "https://picsum.photos/seed/test2/4000",
+      "audioUrl": "https://res.cloudinary.com/dyfswujzb/video/upload/v1767495947/Bhajle-Mann-Tu-Ram-%E0%A4%AD%E0%A4%9C-%E0%A4%B2%E0%A5%87-%E0%A4%AE%E0%A4%A8-%E0%A4%A4%E0%A5%82-%E0%A4%B0%E0%A4%BE%E0%A4%AE_AlokSahdev_ed4eye.mp3",
+      "durationMs": 425000,
+      "categoryId": "test",
+      "transcript": [
+        {
+          "type": "plain",
+          "content": "Test track two content",
+          "language": "en"
+        }
+      ],
+      "tags": ["test"],
+      "updatedAt": "2024-01-15T12:00:00Z"
+    },
+    {
+      "id": "test3",
+      "title": "Test Track Three",
+      "artist": "Test Artist",
+      "album": "Test Album",
+      "artworkUrl": "https://picsum.photos/seed/test3/4000",
+      "audioUrl": "https://res.cloudinary.com/dyfswujzb/video/upload/v1767464173/Shri_Ram_Chandra_Kripalu_Bhajaman_rjvsgm.mp3",
+      "durationMs": 305000,
+      "categoryId": "test",
+      "transcript": [
+        {
+          "type": "plain",
+          "content": "Test track three content",
+          "language": "en"
+        }
+      ],
+      "tags": ["test"],
+      "updatedAt": "2024-01-15T12:00:00Z"
+    }
+  ]
+}

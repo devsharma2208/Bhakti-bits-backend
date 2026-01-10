@@ -1,0 +1,13 @@
+{
+  "watch": [
+    "server.ts",
+    "playlist.json",
+    "playlist.service.ts",
+    "config",
+    "routes",
+    "models",
+    "services"
+  ],
+  "ext": "ts,json",
+  "exec": "node --loader ts-node/esm server.ts"
+}

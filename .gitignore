@@ -1,0 +1,43 @@
+v# Node modules
+node_modules/
+
+# TypeScript build output
+dist/
+build/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# TypeScript cache
+*.tsbuildinfo
+
+# JSON data cache (if you want to ignore data files)
+# data/*.json
+
+# Optional: nodemon debug files
+nodemon-debug.log
+
+# Optional: coverage reports
+coverage/
+
+# Optional: temporary files
+tmp/
+temp/
