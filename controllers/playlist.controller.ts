@@ -5,41 +5,87 @@ import { v4 as uuidv4 } from "uuid"; // for generating unique IDs
 /* -------------------- READ -------------------- */
 
 // GET /playlist
-export const getPlaylist = (req: Request, res: Response) => {
-    const ifNoneMatch = req.headers["if-none-match"];
-    const { body, etag } = playlistService.getPlaylist();
+export const getPlaylist = async (req: Request, res: Response) => {
+    try {
+        const ifNoneMatch = req.headers["if-none-match"];
+        const { body, etag } = await playlistService.getPlaylist();
 
-    if (ifNoneMatch && ifNoneMatch === etag) {
-        return res.status(304).end();
+        if (ifNoneMatch && ifNoneMatch === etag) {
+            return res.status(304).end();
+        }
+
+        res.setHeader("Content-Type", "application/json");
+        res.setHeader("ETag", etag as string);
+        res.status(200).json(body);
+    } catch (error) {
+        res.status(500).json({ message: "Internal server error" });
     }
+};
 
-    res.setHeader("Content-Type", "application/json");
-    res.setHeader("ETag", etag as string);
-    res.status(200).json(body);
+// GET /stats
+export const getStats = async (req: Request, res: Response) => {
+    try {
+        const stats = await playlistService.getStats();
+        res.json(stats);
+    } catch (error) {
+        res.status(500).json({ message: "Internal server error" });
+    }
+};
+
+// GET /playlist/categories
+export const getCategories = async (req: Request, res: Response) => {
+    try {
+        const page = parseInt(req.query.page as string) || 1;
+        const limit = parseInt(req.query.limit as string) || 10;
+        const search = req.query.search as string;
+
+        const result = await playlistService.getCategories(page, limit, search);
+        res.json(result);
+    } catch (error) {
+        res.status(500).json({ message: "Internal server error" });
+    }
 };
 
 // GET /playlist/categories/:id
-export const getCategory = (req: Request, res: Response) => {
-    const category = playlistService.getCategory(req.params.id);
-    if (!category) {
-        return res.status(404).json({ message: "Category not found" });
+export const getCategory = async (req: Request, res: Response) => {
+    try {
+        const category = await playlistService.getCategory(req.params.id);
+        if (!category) {
+            return res.status(404).json({ message: "Category not found" });
+        }
+        res.json(category);
+    } catch (error) {
+        res.status(500).json({ message: "Internal server error" });
     }
-    res.json(category);
 };
 
 // GET /playlist/categories/:id/tracks
-export const getTracksByCategory = (req: Request, res: Response) => {
-    const tracks = playlistService.getTracksByCategory(req.params.id);
-    res.json(tracks);
+export const getTracksByCategory = async (req: Request, res: Response) => {
+    try {
+        const tracks = await playlistService.getTracksByCategory(req.params.id);
+        res.json(tracks);
+    } catch (error) {
+        res.status(500).json({ message: "Internal server error" });
+    }
 };
 
-/* -------------------- CREATE -------------------- */
-
-// POST /playlist/categories
-export const createCategory = async (req: Request, res: Response) => {
-    console.log(req.body);
+// GET /playlist/tracks
+export const getTracks = async (req: Request, res: Response) => {
     try {
-        // Ensure all required fields exist
+        const page = parseInt(req.query.page as string) || 1;
+        const limit = parseInt(req.query.limit as string) || 10;
+        const categoryId = req.query.categoryId as string;
+        const search = req.query.search as string;
+
+        const result = await playlistService.getTracks(page, limit, categoryId, search);
+        res.json(result);
+    } catch (error) {
+        res.status(500).json({ message: "Internal server error" });
+    }
+};
+
+export const createCategory = async (req: Request, res: Response) => {
+    try {
         const categoryData = {
             id: uuidv4(),
             name: req.body.name || "Untitled Category",
@@ -61,6 +107,7 @@ export const createTrack = async (req: Request, res: Response) => {
     try {
         const track = await playlistService.addTrack({
             ...req.body,
+            id: req.body.id || uuidv4(),
             updatedAt: new Date().toISOString(),
         });
         res.status(201).json(track);

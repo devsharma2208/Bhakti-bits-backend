@@ -36,6 +36,13 @@
       "description": "Your personal audio recordings",
       "artworkUrl": "https://picsum.photos/seed/recordings-cat/400",
       "trackCount": 0
+    },
+    {
+      "id": "3db55c0c-6f46-45b3-9581-a8f142ab64bf",
+      "name": "Narsing Mehta",
+      "description": "Narsing Mehta",
+      "artworkUrl": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRWpF-CpHxTyPLhBzUSrN0VuMzy-lzbBXKlMg&s",
+      "trackCount": 0
     }
   ],
   "tracks": [
@@ -99,7 +106,6 @@
       "tags": ["ram", "devotional"],
       "updatedAt": "2024-01-15T12:00:00Z"
     },
-
     {
       "id": "sw1",
       "title": "Mava Tari Murtima",
@@ -139,7 +145,6 @@
       "tags": ["bhajan", "swaminarayan", "devotional"],
       "updatedAt": "2024-01-15T12:00:00Z"
     },
-
     {
       "id": "hn1",
       "title": "Sankatmochan Hanuman Ashtak",
@@ -179,7 +184,6 @@
       "tags": ["bhajan", "hanuman", "chalisa", "devotional"],
       "updatedAt": "2024-01-15T12:00:00Z"
     },
-
     {
       "id": "kr1",
       "title": "Nand Ke Lal",
@@ -218,6 +222,17 @@
       "transcript": [],
       "tags": ["bhajan", "krishna", "devotional"],
       "updatedAt": "2024-01-15T12:00:00Z"
+    },
+    {
+      "title": "Narsing Mehta",
+      "artist": "Narsing Mehta",
+      "album": "Narsing Mehta",
+      "artworkUrl": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRWpF-CpHxTyPLhBzUSrN0VuMzy-lzbBXKlMg&s",
+      "audioUrl": "https://res.cloudinary.com/dyfswujzb/video/upload/v1767464173/Shri_Ram_Chandra_Kripalu_Bhajaman_rjvsgm.mp3",
+      "durationMs": 44998,
+      "categoryId": "3db55c0c-6f46-45b3-9581-a8f142ab64bf",
+      "tags": [],
+      "updatedAt": "2026-01-14T02:10:51.846Z"
     }
   ]
 }

@@ -1,114 +1,149 @@
-import fs from "fs";
-import { promises as fsp } from "fs";
+import Category, { ICategory } from "../models/Category.js";
+import Track, { ITrack } from "../models/Track.js";
 import crypto from "crypto";
-import { PLAYLIST_PATH } from "../config/env.js";
 
 class PlaylistService {
-    private cachedData: any = null;
     private cachedEtag: string | null = null;
-
-    constructor() {
-        this.load();
-        this.watch();
-    }
-
-    private async load() {
-        const file = await fsp.readFile(PLAYLIST_PATH, "utf8");
-        this.cachedData = JSON.parse(file);
-        this.updateEtag(file);
-    }
-
-    private async save() {
-        const data = JSON.stringify(this.cachedData, null, 2);
-        await fsp.writeFile(PLAYLIST_PATH, data, "utf8");
-        this.updateEtag(data);
-    }
 
     private updateEtag(data: string) {
         this.cachedEtag = `"${crypto.createHash("md5").update(data).digest("hex")}"`;
     }
 
-    private watch() {
-        fs.watch(PLAYLIST_PATH, () => this.load());
-    }
-
-    getPlaylist() {
+    async getPlaylist() {
+        const categories = await Category.find();
+        const tracks = await Track.find();
+        const data = {
+            version: 1,
+            updatedAt: new Date().toISOString(),
+            categories,
+            tracks,
+        };
+        const dataString = JSON.stringify(data);
+        this.updateEtag(dataString);
         return {
-            body: this.cachedData,
+            body: data,
             etag: this.cachedEtag,
         };
     }
 
-    getCategory(categoryId: string) {
-        return this.cachedData.categories.find((c: any) => c.id === categoryId);
+    async getCategory(categoryId: string) {
+        return await Category.findOne({ id: categoryId });
     }
 
-    getTracksByCategory(categoryId: string) {
-        return this.cachedData.tracks.filter(
-            (t: any) => t.categoryId === categoryId
-        );
+    async getTracksByCategory(categoryId: string) {
+        return await Track.find({ categoryId });
     }
 
-    async addTrack(track: any) {
-        this.cachedData.tracks.push(track);
-        await this.save();
+    async getCategories(page: number = 1, limit: number = 10, search?: string) {
+        const query: any = {};
+        if (search) {
+            query.$or = [
+                { name: { $regex: search, $options: "i" } },
+                { description: { $regex: search, $options: "i" } },
+            ];
+        }
+
+        const total = await Category.countDocuments(query);
+        const categories = await Category.find(query)
+            .skip((page - 1) * limit)
+            .limit(limit);
+
+        return {
+            categories,
+            total,
+            page,
+            limit,
+            totalPages: Math.ceil(total / limit),
+        };
+    }
+
+    async getTracks(page: number = 1, limit: number = 10, categoryId?: string, search?: string) {
+        const query: any = {};
+        if (categoryId && categoryId !== "all") {
+            query.categoryId = categoryId;
+        }
+        if (search) {
+            query.$or = [
+                { title: { $regex: search, $options: "i" } },
+                { artist: { $regex: search, $options: "i" } },
+                { album: { $regex: search, $options: "i" } },
+            ];
+        }
+
+        const total = await Track.countDocuments(query);
+        const tracks = await Track.find(query)
+            .sort({ createdAt: -1 })
+            .skip((page - 1) * limit)
+            .limit(limit);
+
+        return {
+            tracks,
+            total,
+            page,
+            limit,
+            totalPages: Math.ceil(total / limit),
+        };
+    }
+
+    async addTrack(trackData: any) {
+        const track = new Track(trackData);
+        await track.save();
         return track;
     }
 
-    async addCategory(category: any) {
-        this.cachedData.categories.push(category);
-        await this.save();
+    async addCategory(categoryData: any) {
+        const category = new Category(categoryData);
+        await category.save();
         return category;
     }
 
     async updateTrack(trackId: string, updates: any) {
-        const index = this.cachedData.tracks.findIndex(
-            (t: any) => t.id === trackId
-        );
-        if (index === -1) throw new Error("Track not found");
-
-        this.cachedData.tracks[index] = {
-            ...this.cachedData.tracks[index],
-            ...updates,
-            updatedAt: new Date().toISOString(),
-        };
-
-        await this.save();
-        return this.cachedData.tracks[index];
+        const track = await Track.findOneAndUpdate({ id: trackId }, updates, {
+            new: true,
+        });
+        if (!track) throw new Error("Track not found");
+        return track;
     }
 
     async updateCategory(categoryId: string, updates: any) {
-        const index = this.cachedData.categories.findIndex(
-            (c: any) => c.id === categoryId
+        const category = await Category.findOneAndUpdate(
+            { id: categoryId },
+            updates,
+            { new: true }
         );
-        if (index === -1) throw new Error("Category not found");
-
-        this.cachedData.categories[index] = {
-            ...this.cachedData.categories[index],
-            ...updates,
-        };
-
-        await this.save();
-        return this.cachedData.categories[index];
+        if (!category) throw new Error("Category not found");
+        return category;
     }
 
     async deleteTrack(trackId: string) {
-        this.cachedData.tracks = this.cachedData.tracks.filter(
-            (t: any) => t.id !== trackId
-        );
-        await this.save();
+        await Track.findOneAndDelete({ id: trackId });
     }
 
     async deleteCategory(categoryId: string) {
-        this.cachedData.categories = this.cachedData.categories.filter(
-            (c: any) => c.id !== categoryId
+        await Category.findOneAndDelete({ id: categoryId });
+        await Track.deleteMany({ categoryId });
+    }
+
+    async getStats() {
+        const totalTracks = await Track.countDocuments();
+        const totalCategories = await Category.countDocuments();
+        const tracks = await Track.find();
+        const totalDurationMs = tracks.reduce(
+            (acc: number, t: any) => acc + (t.durationMs || 0),
+            0
         );
 
-        this.cachedData.tracks = this.cachedData.tracks.filter(
-            (t: any) => t.categoryId !== categoryId
-        );
+        const recentTracks = await Track.find()
+            .sort({ updatedAt: -1 })
+            .limit(5);
 
-        await this.save();
+        return {
+            totalTracks,
+            totalCategories,
+            totalDurationMinutes: Math.floor(totalDurationMs / 60000),
+            recentTracks,
+            lastUpdate: new Date().toISOString(),
+        };
     }
 }
 
