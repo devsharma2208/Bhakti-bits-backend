@@ -6,7 +6,8 @@
     "config",
     "routes",
     "models",
-    "services"
+    "services",
+    "controllers"
   ],
   "ext": "ts,json",
   "exec": "node --loader ts-node/esm server.ts"

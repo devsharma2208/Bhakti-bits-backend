@@ -2,21 +2,33 @@ import { Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'bhakti-bits-secret-key-2024';
-const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin';
-// Default password is 'admin123' hashed (in production use env)
-const ADMIN_PASSWORD_HASH = process.env.ADMIN_PASSWORD_HASH || bcrypt.hashSync('admin123', 10);
+const getAdminCredentials = () => {
+    const username = (process.env.ADMIN_USERNAME || 'admin').trim();
+    const passwordEnv = (process.env.ADMIN_PASSWORD_HASH || 'admin123').trim();
+
+    // If it's not a bcrypt hash (doesn't start with $), hash it now
+    const passwordHash = passwordEnv.startsWith('$')
+        ? passwordEnv
+        : bcrypt.hashSync(passwordEnv, 10);
+
+    return { username, passwordHash };
+};
 
 export const login = async (req: Request, res: Response) => {
     const { username, password } = req.body;
-    console.log(username, password)
+    const { username: ADMIN_USERNAME, passwordHash: ADMIN_PASSWORD_HASH } = getAdminCredentials();
+    const JWT_SECRET = process.env.JWT_SECRET || 'bhakti-bits-secret-key-2024';
+
+    console.log(`Login attempt for username: ${username}`);
 
     if (username !== ADMIN_USERNAME) {
+        console.log(`Invalid username. Expected: ${ADMIN_USERNAME}, Received: ${username}`);
         return res.status(401).json({ message: 'Invalid credentials' });
     }
 
     const isPasswordValid = await bcrypt.compare(password, ADMIN_PASSWORD_HASH);
     if (!isPasswordValid) {
+        console.log(`Invalid password for user: ${username}`);
         return res.status(401).json({ message: 'Invalid credentials' });
     }
 

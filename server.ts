@@ -1,5 +1,5 @@
-import app from "./app.js";
 import { PORT } from "./config/env.js";
+import app from "./app.js";
 import { connectDB } from "./config/database.js";
 import { migrateDataToMongo } from "./services/migration.service.js";
 
