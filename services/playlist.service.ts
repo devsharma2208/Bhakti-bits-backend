@@ -98,7 +98,8 @@ class PlaylistService {
     }
 
     async updateTrack(trackId: string, updates: any) {
-        const track = await Track.findOneAndUpdate({ id: trackId }, updates, {
+        // Track lookup switched to findById as 'id' field is removed
+        const track = await Track.findByIdAndUpdate(trackId, updates, {
             new: true,
         });
         if (!track) throw new Error("Track not found");
@@ -106,6 +107,7 @@ class PlaylistService {
     }
 
     async updateCategory(categoryId: string, updates: any) {
+        // Category still uses 'id' string field
         const category = await Category.findOneAndUpdate(
             { id: categoryId },
             updates,
@@ -116,11 +118,13 @@ class PlaylistService {
     }
 
     async deleteTrack(trackId: string) {
-        await Track.findOneAndDelete({ id: trackId });
+        // Track lookup switched to findByIdAndDelete
+        await Track.findByIdAndDelete(trackId);
     }
 
     async deleteCategory(categoryId: string) {
         await Category.findOneAndDelete({ id: categoryId });
+        // Also delete tracks associated with this category
         await Track.deleteMany({ categoryId });
     }
 

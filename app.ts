@@ -15,7 +15,9 @@ app.use(
         exposedHeaders: ["ETag"],
     })
 );
-
+app.get("/", (req, res) => {
+    res.status(200).json({ message: "Server is running" })
+})
 app.use("/auth", authRouter);
 app.use("/", router);
 

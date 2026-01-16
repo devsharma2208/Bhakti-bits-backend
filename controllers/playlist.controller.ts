@@ -117,7 +117,6 @@ export const createCategory = async (req: Request, res: Response) => {
     }
 };
 
-// POST /playlist/tracks
 export const createTrack = async (req: Request, res: Response) => {
     try {
         const files = req.files as { [fieldname: string]: Express.Multer.File[] };
