@@ -84,14 +84,29 @@ export const getTracks = async (req: Request, res: Response) => {
     }
 };
 
+import { uploadToCloudinary } from "../services/upload.service.js";
+
+/* -------------------- CREATE -------------------- */
+
 export const createCategory = async (req: Request, res: Response) => {
     try {
+        let artworkUrl = req.body.artworkUrl || "";
+
+        // Handle file upload if present
+        if (req.file) {
+            const upload = await uploadToCloudinary(req.file, undefined, 'bhakti-bits/categories');
+            artworkUrl = upload.url;
+        } else if (artworkUrl && artworkUrl.includes('drive.google.com')) {
+            const upload = await uploadToCloudinary(undefined, artworkUrl, 'bhakti-bits/categories');
+            artworkUrl = upload.url;
+        }
+
         const categoryData = {
             id: uuidv4(),
             name: req.body.name || "Untitled Category",
             description: req.body.description || "",
-            artworkUrl: req.body.artworkUrl || "",
-            trackCount: req.body.trackCount || 0,
+            artworkUrl: artworkUrl,
+            trackCount: parseInt(req.body.trackCount) || 0,
         };
 
         const category = await playlistService.addCategory(categoryData);
@@ -105,13 +120,44 @@ export const createCategory = async (req: Request, res: Response) => {
 // POST /playlist/tracks
 export const createTrack = async (req: Request, res: Response) => {
     try {
-        const track = await playlistService.addTrack({
+        const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+        let artworkUrl = req.body.artworkUrl || "";
+        let audioUrl = req.body.audioUrl || "";
+        let durationMs = parseInt(req.body.durationMs) || 0;
+
+        // Upload Artwork if file or GDrive URL
+        if (files?.artwork?.[0]) {
+            const upload = await uploadToCloudinary(files.artwork[0], undefined, 'bhakti-bits/artworks');
+            artworkUrl = upload.url;
+        } else if (artworkUrl && artworkUrl.includes('drive.google.com')) {
+            const upload = await uploadToCloudinary(undefined, artworkUrl, 'bhakti-bits/artworks');
+            artworkUrl = upload.url;
+        }
+
+        // Upload Audio if file or GDrive URL
+        if (files?.audio?.[0]) {
+            const upload = await uploadToCloudinary(files.audio[0], undefined, 'bhakti-bits/tracks');
+            audioUrl = upload.url;
+            durationMs = upload.duration;
+        } else if (audioUrl && audioUrl.includes('drive.google.com')) {
+            const upload = await uploadToCloudinary(undefined, audioUrl, 'bhakti-bits/tracks');
+            audioUrl = upload.url;
+            durationMs = upload.duration;
+        }
+
+        const trackData = {
             ...req.body,
             id: req.body.id || uuidv4(),
+            artworkUrl,
+            audioUrl,
+            durationMs,
             updatedAt: new Date().toISOString(),
-        });
+        };
+
+        const track = await playlistService.addTrack(trackData);
         res.status(201).json(track);
     } catch (err) {
+        console.error(err);
         res.status(400).json({ message: "Failed to create track" });
     }
 };
@@ -121,9 +167,19 @@ export const createTrack = async (req: Request, res: Response) => {
 // PUT /playlist/categories/:id
 export const updateCategory = async (req: Request, res: Response) => {
     try {
+        let updateData = { ...req.body };
+
+        if (req.file) {
+            const upload = await uploadToCloudinary(req.file, undefined, 'bhakti-bits/categories');
+            updateData.artworkUrl = upload.url;
+        } else if (updateData.artworkUrl && updateData.artworkUrl.includes('drive.google.com')) {
+            const upload = await uploadToCloudinary(undefined, updateData.artworkUrl, 'bhakti-bits/categories');
+            updateData.artworkUrl = upload.url;
+        }
+
         const updated = await playlistService.updateCategory(
             req.params.id,
-            req.body
+            updateData
         );
         res.json(updated);
     } catch {
@@ -134,9 +190,30 @@ export const updateCategory = async (req: Request, res: Response) => {
 // PUT /playlist/tracks/:id
 export const updateTrack = async (req: Request, res: Response) => {
     try {
+        const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+        let updateData = { ...req.body };
+
+        if (files?.artwork?.[0]) {
+            const upload = await uploadToCloudinary(files.artwork[0], undefined, 'bhakti-bits/artworks');
+            updateData.artworkUrl = upload.url;
+        } else if (updateData.artworkUrl && updateData.artworkUrl.includes('drive.google.com')) {
+            const upload = await uploadToCloudinary(undefined, updateData.artworkUrl, 'bhakti-bits/artworks');
+            updateData.artworkUrl = upload.url;
+        }
+
+        if (files?.audio?.[0]) {
+            const upload = await uploadToCloudinary(files.audio[0], undefined, 'bhakti-bits/tracks');
+            updateData.audioUrl = upload.url;
+            updateData.durationMs = upload.duration;
+        } else if (updateData.audioUrl && updateData.audioUrl.includes('drive.google.com')) {
+            const upload = await uploadToCloudinary(undefined, updateData.audioUrl, 'bhakti-bits/tracks');
+            updateData.audioUrl = upload.url;
+            updateData.durationMs = upload.duration;
+        }
+
         const updated = await playlistService.updateTrack(
             req.params.id,
-            req.body
+            updateData
         );
         res.json(updated);
     } catch {
