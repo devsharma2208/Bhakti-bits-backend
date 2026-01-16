@@ -25,6 +25,7 @@
     "multer": "^2.0.2",
     "multer-storage-cloudinary": "^4.0.0",
     "music-metadata": "^11.10.6",
+    "os": "^0.1.2",
     "uuid": "^13.0.0"
   },
   "devDependencies": {
