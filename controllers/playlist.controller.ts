@@ -128,7 +128,7 @@ export const createTrack = async (req: Request, res: Response) => {
         if (files?.artwork?.[0]) {
             const upload = await uploadToCloudinary(files.artwork[0], undefined, 'bhakti-bits/artworks');
             artworkUrl = upload.url;
-        } else if (artworkUrl && artworkUrl.includes('drive.google.com')) {
+        } else if (artworkUrl && (artworkUrl.includes('drive.google.com') || artworkUrl.includes('res.cloudinary.com'))) {
             const upload = await uploadToCloudinary(undefined, artworkUrl, 'bhakti-bits/artworks');
             artworkUrl = upload.url;
         }
@@ -138,7 +138,7 @@ export const createTrack = async (req: Request, res: Response) => {
             const upload = await uploadToCloudinary(files.audio[0], undefined, 'bhakti-bits/tracks');
             audioUrl = upload.url;
             durationMs = upload.duration;
-        } else if (audioUrl && audioUrl.includes('drive.google.com')) {
+        } else if (audioUrl && (audioUrl.includes('drive.google.com') || audioUrl.includes('res.cloudinary.com'))) {
             const upload = await uploadToCloudinary(undefined, audioUrl, 'bhakti-bits/tracks');
             audioUrl = upload.url;
             durationMs = upload.duration;

@@ -85,9 +85,30 @@ class PlaylistService {
         };
     }
 
+    async updateCategoryTrackCount(categoryId: string) {
+        try {
+            const result = await Track.aggregate([
+                { $match: { categoryId: categoryId } },
+                { $count: "count" }
+            ]);
+
+            const count = result.length > 0 ? result[0].count : 0;
+
+            await Category.findOneAndUpdate(
+                { id: categoryId },
+                { trackCount: count }
+            );
+        } catch (error) {
+            console.error(`Error updating track count for category ${categoryId}:`, error);
+        }
+    }
+
     async addTrack(trackData: any) {
         const track = new Track(trackData);
         await track.save();
+        if (track.categoryId) {
+            await this.updateCategoryTrackCount(track.categoryId);
+        }
         return track;
     }
 
@@ -98,11 +119,24 @@ class PlaylistService {
     }
 
     async updateTrack(trackId: string, updates: any) {
+        const oldTrack = await Track.findById(trackId);
+
         // Track lookup switched to findById as 'id' field is removed
         const track = await Track.findByIdAndUpdate(trackId, updates, {
             new: true,
         });
+
         if (!track) throw new Error("Track not found");
+
+        if (track.categoryId) {
+            await this.updateCategoryTrackCount(track.categoryId);
+        }
+
+        // If category changed, update the old category count too
+        if (oldTrack && oldTrack.categoryId && oldTrack.categoryId !== track.categoryId) {
+            await this.updateCategoryTrackCount(oldTrack.categoryId);
+        }
+
         return track;
     }
 
@@ -119,7 +153,10 @@ class PlaylistService {
 
     async deleteTrack(trackId: string) {
         // Track lookup switched to findByIdAndDelete
-        await Track.findByIdAndDelete(trackId);
+        const deletedTrack = await Track.findByIdAndDelete(trackId);
+        if (deletedTrack && deletedTrack.categoryId) {
+            await this.updateCategoryTrackCount(deletedTrack.categoryId);
+        }
     }
 
     async deleteCategory(categoryId: string) {
