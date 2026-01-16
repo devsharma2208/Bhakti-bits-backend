@@ -30,6 +30,15 @@ class PlaylistService {
         return await Category.findOne({ id: categoryId });
     }
 
+    async getTrack(trackId: string) {
+        // Try both MongoDB _id and string id field for backward compatibility
+        let track = await Track.findById(trackId);
+        if (!track) {
+            track = await Track.findOne({ id: trackId });
+        }
+        return track;
+    }
+
     async getTracksByCategory(categoryId: string) {
         return await Track.find({ categoryId });
     }
@@ -98,10 +107,21 @@ class PlaylistService {
     }
 
     async updateTrack(trackId: string, updates: any) {
-        // Track lookup switched to findById as 'id' field is removed
-        const track = await Track.findByIdAndUpdate(trackId, updates, {
+        // Track uses string 'id' field like Category
+        // Try both MongoDB _id and string id field for backward compatibility
+        let track = await Track.findByIdAndUpdate(trackId, updates, {
             new: true,
         });
+        
+        // If not found by _id, try by string id field
+        if (!track) {
+            track = await Track.findOneAndUpdate(
+                { id: trackId },
+                updates,
+                { new: true }
+            );
+        }
+        
         if (!track) throw new Error("Track not found");
         return track;
     }
@@ -118,8 +138,16 @@ class PlaylistService {
     }
 
     async deleteTrack(trackId: string) {
-        // Track lookup switched to findByIdAndDelete
-        await Track.findByIdAndDelete(trackId);
+        // Track uses string 'id' field like Category
+        // Try both MongoDB _id and string id field for backward compatibility
+        let result = await Track.findByIdAndDelete(trackId);
+        
+        // If not found by _id, try by string id field
+        if (!result) {
+            result = await Track.findOneAndDelete({ id: trackId });
+        }
+        
+        if (!result) throw new Error("Track not found");
     }
 
     async deleteCategory(categoryId: string) {

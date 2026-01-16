@@ -17,8 +17,12 @@ export const getPlaylist = async (req: Request, res: Response) => {
         res.setHeader("Content-Type", "application/json");
         res.setHeader("ETag", etag as string);
         res.status(200).json(body);
-    } catch (error) {
-        res.status(500).json({ message: "Internal server error" });
+    } catch (error: any) {
+        console.error("Error getting playlist:", error);
+        res.status(500).json({ 
+            message: "Internal server error", 
+            error: error.message || "Unknown error" 
+        });
     }
 };
 
@@ -27,60 +31,102 @@ export const getStats = async (req: Request, res: Response) => {
     try {
         const stats = await playlistService.getStats();
         res.json(stats);
-    } catch (error) {
-        res.status(500).json({ message: "Internal server error" });
+    } catch (error: any) {
+        console.error("Error getting stats:", error);
+        res.status(500).json({ 
+            message: "Internal server error", 
+            error: error.message || "Unknown error" 
+        });
     }
 };
 
 // GET /playlist/categories
 export const getCategories = async (req: Request, res: Response) => {
     try {
-        const page = parseInt(req.query.page as string) || 1;
-        const limit = parseInt(req.query.limit as string) || 10;
+        const page = Math.max(1, parseInt(req.query.page as string) || 1);
+        const limit = Math.max(1, Math.min(100, parseInt(req.query.limit as string) || 10));
         const search = req.query.search as string;
 
         const result = await playlistService.getCategories(page, limit, search);
         res.json(result);
-    } catch (error) {
-        res.status(500).json({ message: "Internal server error" });
+    } catch (error: any) {
+        console.error("Error getting categories:", error);
+        res.status(500).json({ 
+            message: "Internal server error", 
+            error: error.message || "Unknown error" 
+        });
     }
 };
 
 // GET /playlist/categories/:id
 export const getCategory = async (req: Request, res: Response) => {
     try {
-        const category = await playlistService.getCategory(req.params.id);
+        if (!req.params.id || req.params.id.trim() === "") {
+            return res.status(400).json({ message: "Category ID is required" });
+        }
+
+        const category = await playlistService.getCategory(req.params.id.trim());
         if (!category) {
             return res.status(404).json({ message: "Category not found" });
         }
         res.json(category);
-    } catch (error) {
-        res.status(500).json({ message: "Internal server error" });
+    } catch (error: any) {
+        console.error("Error getting category:", error);
+        res.status(500).json({ 
+            message: "Internal server error", 
+            error: error.message || "Unknown error" 
+        });
     }
 };
 
 // GET /playlist/categories/:id/tracks
 export const getTracksByCategory = async (req: Request, res: Response) => {
     try {
-        const tracks = await playlistService.getTracksByCategory(req.params.id);
+        if (!req.params.id || req.params.id.trim() === "") {
+            return res.status(400).json({ message: "Category ID is required" });
+        }
+
+        // Verify category exists
+        const category = await playlistService.getCategory(req.params.id.trim());
+        if (!category) {
+            return res.status(404).json({ message: "Category not found" });
+        }
+
+        const tracks = await playlistService.getTracksByCategory(req.params.id.trim());
         res.json(tracks);
-    } catch (error) {
-        res.status(500).json({ message: "Internal server error" });
+    } catch (error: any) {
+        console.error("Error getting tracks by category:", error);
+        res.status(500).json({ 
+            message: "Internal server error", 
+            error: error.message || "Unknown error" 
+        });
     }
 };
 
 // GET /playlist/tracks
 export const getTracks = async (req: Request, res: Response) => {
     try {
-        const page = parseInt(req.query.page as string) || 1;
-        const limit = parseInt(req.query.limit as string) || 10;
+        const page = Math.max(1, parseInt(req.query.page as string) || 1);
+        const limit = Math.max(1, Math.min(100, parseInt(req.query.limit as string) || 10));
         const categoryId = req.query.categoryId as string;
         const search = req.query.search as string;
 
+        // Validate categoryId if provided
+        if (categoryId && categoryId !== "all") {
+            const category = await playlistService.getCategory(categoryId);
+            if (!category) {
+                return res.status(404).json({ message: "Category not found" });
+            }
+        }
+
         const result = await playlistService.getTracks(page, limit, categoryId, search);
         res.json(result);
-    } catch (error) {
-        res.status(500).json({ message: "Internal server error" });
+    } catch (error: any) {
+        console.error("Error getting tracks:", error);
+        res.status(500).json({ 
+            message: "Internal server error", 
+            error: error.message || "Unknown error" 
+        });
     }
 };
 
@@ -90,6 +136,15 @@ import { uploadToCloudinary } from "../services/upload.service.js";
 
 export const createCategory = async (req: Request, res: Response) => {
     try {
+        // Validate required fields
+        if (!req.body.name || req.body.name.trim() === "") {
+            return res.status(400).json({ message: "Category name is required" });
+        }
+
+        if (!req.body.description || req.body.description.trim() === "") {
+            return res.status(400).json({ message: "Category description is required" });
+        }
+
         let artworkUrl = req.body.artworkUrl || "";
 
         // Handle file upload if present
@@ -101,24 +156,61 @@ export const createCategory = async (req: Request, res: Response) => {
             artworkUrl = upload.url;
         }
 
+        // Validate artworkUrl is provided (either via file upload or URL)
+        if (!artworkUrl || artworkUrl.trim() === "") {
+            return res.status(400).json({ message: "Artwork URL or file is required" });
+        }
+
         const categoryData = {
             id: uuidv4(),
-            name: req.body.name || "Untitled Category",
-            description: req.body.description || "",
+            name: req.body.name.trim(),
+            description: req.body.description.trim(),
             artworkUrl: artworkUrl,
             trackCount: parseInt(req.body.trackCount) || 0,
         };
 
         const category = await playlistService.addCategory(categoryData);
         res.status(201).json(category);
-    } catch (err) {
-        console.error(err);
-        res.status(400).json({ message: "Failed to create category" });
+    } catch (err: any) {
+        console.error("Error creating category:", err);
+        
+        // Handle Mongoose validation errors
+        if (err.name === 'ValidationError') {
+            const errors = Object.values(err.errors || {}).map((e: any) => e.message);
+            return res.status(400).json({ message: "Validation error", errors });
+        }
+        
+        // Handle duplicate key errors
+        if (err.code === 11000) {
+            return res.status(400).json({ message: "Category with this ID already exists" });
+        }
+        
+        res.status(400).json({ 
+            message: "Failed to create category", 
+            error: err.message || "Unknown error" 
+        });
     }
 };
 
 export const createTrack = async (req: Request, res: Response) => {
     try {
+        // Validate required fields
+        if (!req.body.title || req.body.title.trim() === "") {
+            return res.status(400).json({ message: "Track title is required" });
+        }
+
+        if (!req.body.artist || req.body.artist.trim() === "") {
+            return res.status(400).json({ message: "Track artist is required" });
+        }
+
+        if (!req.body.album || req.body.album.trim() === "") {
+            return res.status(400).json({ message: "Track album is required" });
+        }
+
+        if (!req.body.categoryId || req.body.categoryId.trim() === "") {
+            return res.status(400).json({ message: "Category ID is required" });
+        }
+
         const files = req.files as { [fieldname: string]: Express.Multer.File[] };
         let artworkUrl = req.body.artworkUrl || "";
         let audioUrl = req.body.audioUrl || "";
@@ -133,6 +225,11 @@ export const createTrack = async (req: Request, res: Response) => {
             artworkUrl = upload.url;
         }
 
+        // Validate artworkUrl is provided
+        if (!artworkUrl || artworkUrl.trim() === "") {
+            return res.status(400).json({ message: "Artwork URL or file is required" });
+        }
+
         // Upload Audio if file or GDrive URL
         if (files?.audio?.[0]) {
             const upload = await uploadToCloudinary(files.audio[0], undefined, 'bhakti-bits/tracks');
@@ -144,20 +241,50 @@ export const createTrack = async (req: Request, res: Response) => {
             durationMs = upload.duration;
         }
 
+        // Validate audioUrl is provided
+        if (!audioUrl || audioUrl.trim() === "") {
+            return res.status(400).json({ message: "Audio URL or file is required" });
+        }
+
+        // Validate that category exists
+        const category = await playlistService.getCategory(req.body.categoryId);
+        if (!category) {
+            return res.status(404).json({ message: "Category not found" });
+        }
+
         const trackData = {
             ...req.body,
             id: req.body.id || uuidv4(),
+            title: req.body.title.trim(),
+            artist: req.body.artist.trim(),
+            album: req.body.album.trim(),
             artworkUrl,
             audioUrl,
             durationMs,
+            categoryId: req.body.categoryId.trim(),
             updatedAt: new Date().toISOString(),
         };
 
         const track = await playlistService.addTrack(trackData);
         res.status(201).json(track);
-    } catch (err) {
-        console.error(err);
-        res.status(400).json({ message: "Failed to create track" });
+    } catch (err: any) {
+        console.error("Error creating track:", err);
+        
+        // Handle Mongoose validation errors
+        if (err.name === 'ValidationError') {
+            const errors = Object.values(err.errors || {}).map((e: any) => e.message);
+            return res.status(400).json({ message: "Validation error", errors });
+        }
+        
+        // Handle duplicate key errors
+        if (err.code === 11000) {
+            return res.status(400).json({ message: "Track with this ID already exists" });
+        }
+        
+        res.status(400).json({ 
+            message: "Failed to create track", 
+            error: err.message || "Unknown error" 
+        });
     }
 };
 
@@ -166,7 +293,30 @@ export const createTrack = async (req: Request, res: Response) => {
 // PUT /playlist/categories/:id
 export const updateCategory = async (req: Request, res: Response) => {
     try {
-        let updateData = { ...req.body };
+        // Check if category exists
+        const existingCategory = await playlistService.getCategory(req.params.id);
+        if (!existingCategory) {
+            return res.status(404).json({ message: "Category not found" });
+        }
+
+        let updateData: any = { ...req.body };
+
+        // Remove id from updateData if present (shouldn't be updated)
+        delete updateData.id;
+
+        // Trim string fields if present
+        if (updateData.name) updateData.name = updateData.name.trim();
+        if (updateData.description) updateData.description = updateData.description.trim();
+
+        // Validate name if provided
+        if (updateData.name !== undefined && updateData.name.trim() === "") {
+            return res.status(400).json({ message: "Category name cannot be empty" });
+        }
+
+        // Validate description if provided
+        if (updateData.description !== undefined && updateData.description.trim() === "") {
+            return res.status(400).json({ message: "Category description cannot be empty" });
+        }
 
         if (req.file) {
             const upload = await uploadToCloudinary(req.file, undefined, 'bhakti-bits/categories');
@@ -176,21 +326,77 @@ export const updateCategory = async (req: Request, res: Response) => {
             updateData.artworkUrl = upload.url;
         }
 
+        // Handle trackCount if provided
+        if (updateData.trackCount !== undefined) {
+            updateData.trackCount = parseInt(updateData.trackCount) || 0;
+        }
+
         const updated = await playlistService.updateCategory(
             req.params.id,
             updateData
         );
         res.json(updated);
-    } catch {
-        res.status(404).json({ message: "Category not found" });
+    } catch (err: any) {
+        console.error("Error updating category:", err);
+        
+        // Handle Mongoose validation errors
+        if (err.name === 'ValidationError') {
+            const errors = Object.values(err.errors || {}).map((e: any) => e.message);
+            return res.status(400).json({ message: "Validation error", errors });
+        }
+        
+        if (err.message === "Category not found") {
+            return res.status(404).json({ message: "Category not found" });
+        }
+        
+        res.status(400).json({ 
+            message: "Failed to update category", 
+            error: err.message || "Unknown error" 
+        });
     }
 };
 
 // PUT /playlist/tracks/:id
 export const updateTrack = async (req: Request, res: Response) => {
     try {
+        // Check if track exists
+        const existingTrack = await playlistService.getTrack(req.params.id);
+        if (!existingTrack) {
+            return res.status(404).json({ message: "Track not found" });
+        }
+
         const files = req.files as { [fieldname: string]: Express.Multer.File[] };
-        let updateData = { ...req.body };
+        let updateData: any = { ...req.body };
+
+        // Remove id from updateData if present (shouldn't be updated)
+        delete updateData.id;
+
+        // Trim string fields if present
+        if (updateData.title) updateData.title = updateData.title.trim();
+        if (updateData.artist) updateData.artist = updateData.artist.trim();
+        if (updateData.album) updateData.album = updateData.album.trim();
+
+        // Validate fields if provided
+        if (updateData.title !== undefined && updateData.title.trim() === "") {
+            return res.status(400).json({ message: "Track title cannot be empty" });
+        }
+
+        if (updateData.artist !== undefined && updateData.artist.trim() === "") {
+            return res.status(400).json({ message: "Track artist cannot be empty" });
+        }
+
+        if (updateData.album !== undefined && updateData.album.trim() === "") {
+            return res.status(400).json({ message: "Track album cannot be empty" });
+        }
+
+        // Validate category exists if categoryId is being updated
+        if (updateData.categoryId) {
+            const category = await playlistService.getCategory(updateData.categoryId);
+            if (!category) {
+                return res.status(404).json({ message: "Category not found" });
+            }
+            updateData.categoryId = updateData.categoryId.trim();
+        }
 
         if (files?.artwork?.[0]) {
             const upload = await uploadToCloudinary(files.artwork[0], undefined, 'bhakti-bits/artworks');
@@ -210,13 +416,33 @@ export const updateTrack = async (req: Request, res: Response) => {
             updateData.durationMs = upload.duration;
         }
 
+        // Handle durationMs if provided
+        if (updateData.durationMs !== undefined) {
+            updateData.durationMs = parseInt(updateData.durationMs) || 0;
+        }
+
         const updated = await playlistService.updateTrack(
             req.params.id,
             updateData
         );
         res.json(updated);
-    } catch {
-        res.status(404).json({ message: "Track not found" });
+    } catch (err: any) {
+        console.error("Error updating track:", err);
+        
+        // Handle Mongoose validation errors
+        if (err.name === 'ValidationError') {
+            const errors = Object.values(err.errors || {}).map((e: any) => e.message);
+            return res.status(400).json({ message: "Validation error", errors });
+        }
+        
+        if (err.message === "Track not found") {
+            return res.status(404).json({ message: "Track not found" });
+        }
+        
+        res.status(400).json({ 
+            message: "Failed to update track", 
+            error: err.message || "Unknown error" 
+        });
     }
 };
 
@@ -225,19 +451,39 @@ export const updateTrack = async (req: Request, res: Response) => {
 // DELETE /playlist/categories/:id
 export const deleteCategory = async (req: Request, res: Response) => {
     try {
+        // Check if category exists
+        const category = await playlistService.getCategory(req.params.id);
+        if (!category) {
+            return res.status(404).json({ message: "Category not found" });
+        }
+
         await playlistService.deleteCategory(req.params.id);
         res.status(204).end();
-    } catch {
-        res.status(404).json({ message: "Category not found" });
+    } catch (err: any) {
+        console.error("Error deleting category:", err);
+        res.status(500).json({ 
+            message: "Failed to delete category", 
+            error: err.message || "Unknown error" 
+        });
     }
 };
 
 // DELETE /playlist/tracks/:id
 export const deleteTrack = async (req: Request, res: Response) => {
     try {
+        // Check if track exists
+        const track = await playlistService.getTrack(req.params.id);
+        if (!track) {
+            return res.status(404).json({ message: "Track not found" });
+        }
+
         await playlistService.deleteTrack(req.params.id);
         res.status(204).end();
-    } catch {
-        res.status(404).json({ message: "Track not found" });
+    } catch (err: any) {
+        console.error("Error deleting track:", err);
+        res.status(500).json({ 
+            message: "Failed to delete track", 
+            error: err.message || "Unknown error" 
+        });
     }
 };
