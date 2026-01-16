@@ -30,6 +30,15 @@ class PlaylistService {
         return await Category.findOne({ id: categoryId });
     }
 
+    async getTrack(trackId: string) {
+        // Try both MongoDB _id and string id field for backward compatibility
+        let track = await Track.findById(trackId);
+        if (!track) {
+            track = await Track.findOne({ id: trackId });
+        }
+        return track;
+    }
+
     async getTracksByCategory(categoryId: string) {
         return await Track.find({ categoryId });
     }

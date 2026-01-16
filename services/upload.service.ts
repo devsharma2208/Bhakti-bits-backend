@@ -15,7 +15,7 @@ export const uploadToCloudinary = async (file: Express.Multer.File | undefined, 
                     resource_type: 'auto',
                     folder: folder
                 },
-                (error, result) => {
+                (error: any, result: any) => {
                     if (error) reject(error);
                     else resolve(result);
                 }
