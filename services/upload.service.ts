@@ -8,6 +8,10 @@ export const uploadToCloudinary = async (file: Express.Multer.File | undefined, 
     let publicId = '';
 
     if (file) {
+        if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
+            throw new Error("Cloudinary credentials are missing on the server");
+        }
+
         // Use upload_stream for better memory handling with large files
         const uploadResult = await new Promise<any>((resolve, reject) => {
             const uploadStream = cloudinary.uploader.upload_stream(
@@ -16,8 +20,12 @@ export const uploadToCloudinary = async (file: Express.Multer.File | undefined, 
                     folder: folder
                 },
                 (error: any, result: any) => {
-                    if (error) reject(error);
-                    else resolve(result);
+                    if (error) {
+                        console.error("Cloudinary upload error:", error);
+                        reject(new Error(error.message || "Cloudinary upload failed"));
+                    } else {
+                        resolve(result);
+                    }
                 }
             );
 

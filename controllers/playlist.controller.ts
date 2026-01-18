@@ -250,9 +250,21 @@ export const createTrack = async (req: Request, res: Response) => {
         }
 
         // Validate that category exists
+        console.log("Checking category existence:", req.body.categoryId);
         const category = await playlistService.getCategory(req.body.categoryId);
         if (!category) {
+            console.error("Category not found:", req.body.categoryId);
             return res.status(404).json({ message: "Category not found" });
+        }
+
+        // Handle tags: Multer might return a single string if only one tag is present
+        let tags: string[] = [];
+        if (req.body.tags) {
+            if (Array.isArray(req.body.tags)) {
+                tags = req.body.tags;
+            } else if (typeof req.body.tags === 'string') {
+                tags = [req.body.tags];
+            }
         }
 
         const trackData = {
@@ -265,13 +277,17 @@ export const createTrack = async (req: Request, res: Response) => {
             audioUrl,
             durationMs,
             categoryId: req.body.categoryId.trim(),
+            tags, // data-fixed
             updatedAt: new Date().toISOString(),
         };
 
+        console.log("Adding track to DB:", trackData);
         const track = await playlistService.addTrack(trackData);
+        console.log("Track added successfully");
         res.status(201).json(track);
     } catch (err: any) {
         console.error("Error creating track:", err);
+        console.error("Error details:", JSON.stringify(err, Object.getOwnPropertyNames(err)));
 
         // Handle Mongoose validation errors
         if (err.name === 'ValidationError') {
@@ -286,7 +302,8 @@ export const createTrack = async (req: Request, res: Response) => {
 
         res.status(400).json({
             message: "Failed to create track",
-            error: err.message || "Unknown error"
+            error: err.message || "Unknown error",
+            details: err
         });
     }
 };
@@ -370,6 +387,15 @@ export const updateTrack = async (req: Request, res: Response) => {
 
         const files = req.files as { [fieldname: string]: Express.Multer.File[] };
         let updateData: any = { ...req.body };
+
+        // Handle tags: Multer might return a single string if only one tag is present
+        if (updateData.tags) {
+            if (Array.isArray(updateData.tags)) {
+                // already array
+            } else if (typeof updateData.tags === 'string') {
+                updateData.tags = [updateData.tags];
+            }
+        }
 
         // Remove id from updateData if present (shouldn't be updated)
         delete updateData.id;
