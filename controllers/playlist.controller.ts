@@ -19,9 +19,9 @@ export const getPlaylist = async (req: Request, res: Response) => {
         res.status(200).json(body);
     } catch (error: any) {
         console.error("Error getting playlist:", error);
-        res.status(500).json({ 
-            message: "Internal server error", 
-            error: error.message || "Unknown error" 
+        res.status(500).json({
+            message: "Internal server error",
+            error: error.message || "Unknown error"
         });
     }
 };
@@ -33,9 +33,9 @@ export const getStats = async (req: Request, res: Response) => {
         res.json(stats);
     } catch (error: any) {
         console.error("Error getting stats:", error);
-        res.status(500).json({ 
-            message: "Internal server error", 
-            error: error.message || "Unknown error" 
+        res.status(500).json({
+            message: "Internal server error",
+            error: error.message || "Unknown error"
         });
     }
 };
@@ -51,9 +51,9 @@ export const getCategories = async (req: Request, res: Response) => {
         res.json(result);
     } catch (error: any) {
         console.error("Error getting categories:", error);
-        res.status(500).json({ 
-            message: "Internal server error", 
-            error: error.message || "Unknown error" 
+        res.status(500).json({
+            message: "Internal server error",
+            error: error.message || "Unknown error"
         });
     }
 };
@@ -72,9 +72,9 @@ export const getCategory = async (req: Request, res: Response) => {
         res.json(category);
     } catch (error: any) {
         console.error("Error getting category:", error);
-        res.status(500).json({ 
-            message: "Internal server error", 
-            error: error.message || "Unknown error" 
+        res.status(500).json({
+            message: "Internal server error",
+            error: error.message || "Unknown error"
         });
     }
 };
@@ -96,9 +96,9 @@ export const getTracksByCategory = async (req: Request, res: Response) => {
         res.json(tracks);
     } catch (error: any) {
         console.error("Error getting tracks by category:", error);
-        res.status(500).json({ 
-            message: "Internal server error", 
-            error: error.message || "Unknown error" 
+        res.status(500).json({
+            message: "Internal server error",
+            error: error.message || "Unknown error"
         });
     }
 };
@@ -123,9 +123,9 @@ export const getTracks = async (req: Request, res: Response) => {
         res.json(result);
     } catch (error: any) {
         console.error("Error getting tracks:", error);
-        res.status(500).json({ 
-            message: "Internal server error", 
-            error: error.message || "Unknown error" 
+        res.status(500).json({
+            message: "Internal server error",
+            error: error.message || "Unknown error"
         });
     }
 };
@@ -173,27 +173,30 @@ export const createCategory = async (req: Request, res: Response) => {
         res.status(201).json(category);
     } catch (err: any) {
         console.error("Error creating category:", err);
-        
+
         // Handle Mongoose validation errors
         if (err.name === 'ValidationError') {
             const errors = Object.values(err.errors || {}).map((e: any) => e.message);
             return res.status(400).json({ message: "Validation error", errors });
         }
-        
+
         // Handle duplicate key errors
         if (err.code === 11000) {
             return res.status(400).json({ message: "Category with this ID already exists" });
         }
-        
-        res.status(400).json({ 
-            message: "Failed to create category", 
-            error: err.message || "Unknown error" 
+
+        res.status(400).json({
+            message: "Failed to create category",
+            error: err.message || "Unknown error"
         });
     }
 };
 
 export const createTrack = async (req: Request, res: Response) => {
     try {
+        console.log("createTrack called");
+        console.log("Req Body:", req.body);
+        console.log("Req Files:", req.files);
         // Validate required fields
         if (!req.body.title || req.body.title.trim() === "") {
             return res.status(400).json({ message: "Track title is required" });
@@ -269,21 +272,21 @@ export const createTrack = async (req: Request, res: Response) => {
         res.status(201).json(track);
     } catch (err: any) {
         console.error("Error creating track:", err);
-        
+
         // Handle Mongoose validation errors
         if (err.name === 'ValidationError') {
             const errors = Object.values(err.errors || {}).map((e: any) => e.message);
             return res.status(400).json({ message: "Validation error", errors });
         }
-        
+
         // Handle duplicate key errors
         if (err.code === 11000) {
             return res.status(400).json({ message: "Track with this ID already exists" });
         }
-        
-        res.status(400).json({ 
-            message: "Failed to create track", 
-            error: err.message || "Unknown error" 
+
+        res.status(400).json({
+            message: "Failed to create track",
+            error: err.message || "Unknown error"
         });
     }
 };
@@ -338,20 +341,20 @@ export const updateCategory = async (req: Request, res: Response) => {
         res.json(updated);
     } catch (err: any) {
         console.error("Error updating category:", err);
-        
+
         // Handle Mongoose validation errors
         if (err.name === 'ValidationError') {
             const errors = Object.values(err.errors || {}).map((e: any) => e.message);
             return res.status(400).json({ message: "Validation error", errors });
         }
-        
+
         if (err.message === "Category not found") {
             return res.status(404).json({ message: "Category not found" });
         }
-        
-        res.status(400).json({ 
-            message: "Failed to update category", 
-            error: err.message || "Unknown error" 
+
+        res.status(400).json({
+            message: "Failed to update category",
+            error: err.message || "Unknown error"
         });
     }
 };
@@ -428,20 +431,20 @@ export const updateTrack = async (req: Request, res: Response) => {
         res.json(updated);
     } catch (err: any) {
         console.error("Error updating track:", err);
-        
+
         // Handle Mongoose validation errors
         if (err.name === 'ValidationError') {
             const errors = Object.values(err.errors || {}).map((e: any) => e.message);
             return res.status(400).json({ message: "Validation error", errors });
         }
-        
+
         if (err.message === "Track not found") {
             return res.status(404).json({ message: "Track not found" });
         }
-        
-        res.status(400).json({ 
-            message: "Failed to update track", 
-            error: err.message || "Unknown error" 
+
+        res.status(400).json({
+            message: "Failed to update track",
+            error: err.message || "Unknown error"
         });
     }
 };
@@ -461,9 +464,9 @@ export const deleteCategory = async (req: Request, res: Response) => {
         res.status(204).end();
     } catch (err: any) {
         console.error("Error deleting category:", err);
-        res.status(500).json({ 
-            message: "Failed to delete category", 
-            error: err.message || "Unknown error" 
+        res.status(500).json({
+            message: "Failed to delete category",
+            error: err.message || "Unknown error"
         });
     }
 };
@@ -481,9 +484,9 @@ export const deleteTrack = async (req: Request, res: Response) => {
         res.status(204).end();
     } catch (err: any) {
         console.error("Error deleting track:", err);
-        res.status(500).json({ 
-            message: "Failed to delete track", 
-            error: err.message || "Unknown error" 
+        res.status(500).json({
+            message: "Failed to delete track",
+            error: err.message || "Unknown error"
         });
     }
 };
