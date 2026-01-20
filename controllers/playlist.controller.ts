@@ -501,6 +501,7 @@ export const deleteCategory = async (req: Request, res: Response) => {
 export const deleteTrack = async (req: Request, res: Response) => {
     try {
         // Check if track exists
+        console.log("track id:----", req.params.id)
         const track = await playlistService.getTrack(req.params.id);
         if (!track) {
             return res.status(404).json({ message: "Track not found" });
