@@ -1,6 +1,30 @@
 import { Request, Response } from "express";
 import playlistService from "../services/playlist.service.js";
-import { v4 as uuidv4 } from "uuid"; // for generating unique IDs
+import { v4 as uuidv4 } from "uuid";
+
+const autoTimestampLRC = (transcript: any[], durationMs: number): any[] => {
+    if (!transcript || !Array.isArray(transcript)) return [];
+
+    return transcript.map(node => {
+        if (node.type === 'lrc' && durationMs > 0) {
+            const hasTimestamps = node.content.split('\n').some((line: string) => /\[\d+:\d+(?:\.\d+)?\]/.test(line));
+            if (!hasTimestamps) {
+                const lines = node.content.split('\n').filter((l: string) => l.trim() !== '');
+                const effectiveMs = durationMs * 0.95; // 5% buffer
+                const interval = effectiveMs / lines.length;
+
+                node.content = lines.map((line: string, i: number) => {
+                    const timeMs = i * interval;
+                    const mins = Math.floor(timeMs / 60000);
+                    const secs = ((timeMs % 60000) / 1000).toFixed(2).padStart(5, '0');
+                    return `[${mins.toString().padStart(2, '0')}:${secs}] ${line.trim()}`;
+                }).join('\n');
+            }
+        }
+        return node;
+    });
+};
+
 
 /* -------------------- READ -------------------- */
 
@@ -267,6 +291,32 @@ export const createTrack = async (req: Request, res: Response) => {
             }
         }
 
+        // Handle transcript
+        let transcript: any[] = [];
+        if (req.body.transcript) {
+            let transcriptInput = req.body.transcript;
+
+            // If it's an array with one string, extract the string
+            if (Array.isArray(transcriptInput) && transcriptInput.length === 1 && typeof transcriptInput[0] === 'string') {
+                transcriptInput = transcriptInput[0];
+            }
+
+            try {
+                if (typeof transcriptInput === 'string') {
+                    transcript = JSON.parse(transcriptInput);
+                } else if (Array.isArray(transcriptInput)) {
+                    transcript = transcriptInput;
+                }
+            } catch (e) {
+                console.error("Error parsing transcript:", e);
+                // Fallback to array if it's already one, otherwise empty
+                transcript = Array.isArray(transcriptInput) ? transcriptInput : [];
+            }
+
+            // Auto-calculate timestamps for LRC nodes if duration is available
+            transcript = autoTimestampLRC(transcript, durationMs);
+        }
+
         const trackData = {
             ...req.body,
             id: req.body.id || uuidv4(),
@@ -277,9 +327,11 @@ export const createTrack = async (req: Request, res: Response) => {
             audioUrl,
             durationMs,
             categoryId: req.body.categoryId.trim(),
-            tags, // data-fixed
+            tags,
+            transcript,
             updatedAt: new Date().toISOString(),
         };
+
 
         console.log("Adding track to DB:", trackData);
         const track = await playlistService.addTrack(trackData);
@@ -399,6 +451,32 @@ export const updateTrack = async (req: Request, res: Response) => {
 
         // Remove id from updateData if present (shouldn't be updated)
         delete updateData.id;
+
+        // Handle transcript
+        if (updateData.transcript) {
+            let transcriptInput = updateData.transcript;
+
+            // If it's an array with one string, extract the string
+            if (Array.isArray(transcriptInput) && transcriptInput.length === 1 && typeof transcriptInput[0] === 'string') {
+                transcriptInput = transcriptInput[0];
+            }
+
+            try {
+                if (typeof transcriptInput === 'string') {
+                    updateData.transcript = JSON.parse(transcriptInput);
+                } else if (Array.isArray(transcriptInput)) {
+                    updateData.transcript = transcriptInput;
+                }
+            } catch (e) {
+                console.error("Error parsing transcript in update:", e);
+                updateData.transcript = Array.isArray(transcriptInput) ? transcriptInput : [];
+            }
+
+            // Auto-calculate timestamps for LRC nodes if duration is available
+            const finalDuration = updateData.durationMs || existingTrack.durationMs || 0;
+            updateData.transcript = autoTimestampLRC(updateData.transcript, finalDuration);
+        }
+
 
         // Trim string fields if present
         if (updateData.title) updateData.title = updateData.title.trim();
