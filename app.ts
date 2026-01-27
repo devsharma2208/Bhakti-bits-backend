@@ -10,7 +10,7 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 
-// CORS configuration - must be before other middleware
+// CORS configuration - must be before other middleware test
 // The cors middleware automatically handles OPTIONS preflight requests
 app.use(
     cors({
