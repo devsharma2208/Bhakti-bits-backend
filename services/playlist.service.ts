@@ -146,22 +146,6 @@ class PlaylistService {
             await this.updateCategoryTrackCount(track.categoryId);
         }
 
-        // Note: Managing old category count would require fetching the old track first.
-        // For simplicity and performance, we'll skip that check here unless strictly necessary,
-        // or we could implementing fetching oldTrack before update if reliable counts are critical.
-        // Given the previous code tried to fetch oldTrack but crashed on UUIDs, we'll omit 
-        // the pre-fetch or fix it if needed. 
-        // Let's implement robust oldTrack fetching:
-
-        // Actually, let's keep it simple to fix the crash first. 
-        // If the user needs the exact category count consistency logic preserved perfectly:
-        // We can do:
-        /*
-        let oldTrack = await this.getTrack(trackId);
-        ... update ...
-        */
-        // But the previous implementations of `addTrack` and `deleteTrack` simply update current category.
-
         return track;
     }
 

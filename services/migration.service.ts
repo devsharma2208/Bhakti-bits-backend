@@ -42,7 +42,5 @@ export const migrateDataToMongo = async () => {
         console.error("Error during data migration:", error);
         console.error("Error message:", error?.message);
         console.error("Error stack:", error?.stack);
-        // Don't throw - allow server to start even if migration fails
-        // Migration is optional and data might already exist
     }
 };
