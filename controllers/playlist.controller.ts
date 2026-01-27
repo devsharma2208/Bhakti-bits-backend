@@ -2,6 +2,15 @@ import { Request, Response } from "express";
 import playlistService from "../services/playlist.service.js";
 import { v4 as uuidv4 } from "uuid";
 
+const getFullUrl = (req: Request, url: string) => {
+    if (!url || url.startsWith('http')) return url;
+    // Handle both relative paths and IDs
+    const path = url.startsWith('/') ? url : `/media/${url}`;
+    const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+    const host = req.get('host');
+    return `${protocol}://${host}${path}`;
+};
+
 const autoTimestampLRC = (transcript: any[], durationMs: number): any[] => {
     if (!transcript || !Array.isArray(transcript)) return [];
 
@@ -66,6 +75,21 @@ export const getPlaylist = async (req: Request, res: Response) => {
         const ifNoneMatch = req.headers["if-none-match"];
         const { body, etag } = await playlistService.getPlaylist();
 
+        // Make URLs absolute
+        if (body.categories) {
+            body.categories = body.categories.map((cat: any) => ({
+                ...cat,
+                artworkUrl: getFullUrl(req, cat.artworkUrl)
+            }));
+        }
+        if (body.tracks) {
+            body.tracks = body.tracks.map((track: any) => ({
+                ...track,
+                artworkUrl: getFullUrl(req, track.artworkUrl),
+                audioUrl: getFullUrl(req, track.audioUrl)
+            }));
+        }
+
         if (ifNoneMatch && ifNoneMatch === etag) {
             return res.status(304).end();
         }
@@ -86,6 +110,19 @@ export const getPlaylist = async (req: Request, res: Response) => {
 export const getStats = async (req: Request, res: Response) => {
     try {
         const stats = await playlistService.getStats();
+
+        // Make URLs absolute for recent tracks
+        if (stats.recentTracks) {
+            stats.recentTracks = stats.recentTracks.map((track: any) => {
+                const trackObj = track.toObject ? track.toObject() : track;
+                return {
+                    ...trackObj,
+                    artworkUrl: getFullUrl(req, trackObj.artworkUrl),
+                    audioUrl: getFullUrl(req, trackObj.audioUrl)
+                };
+            });
+        }
+
         res.json(stats);
     } catch (error: any) {
         console.error("Error getting stats:", error);
@@ -104,6 +141,16 @@ export const getCategories = async (req: Request, res: Response) => {
         const search = req.query.search as string;
 
         const result = await playlistService.getCategories(page, limit, search);
+
+        // Make URLs absolute
+        result.categories = result.categories.map((cat: any) => {
+            const catObj = cat.toObject ? cat.toObject() : cat;
+            return {
+                ...catObj,
+                artworkUrl: getFullUrl(req, catObj.artworkUrl)
+            };
+        });
+
         res.json(result);
     } catch (error: any) {
         console.error("Error getting categories:", error);
@@ -122,10 +169,13 @@ export const getCategory = async (req: Request, res: Response) => {
         }
 
         const category = await playlistService.getCategory(req.params.id.trim());
-        if (!category) {
-            return res.status(404).json({ message: "Category not found" });
+        if (category) {
+            const catObj = category.toObject ? category.toObject() : category;
+            catObj.artworkUrl = getFullUrl(req, catObj.artworkUrl);
+            res.json(catObj);
+        } else {
+            res.status(404).json({ message: "Category not found" });
         }
-        res.json(category);
     } catch (error: any) {
         console.error("Error getting category:", error);
         res.status(500).json({
@@ -149,7 +199,18 @@ export const getTracksByCategory = async (req: Request, res: Response) => {
         }
 
         const tracks = await playlistService.getTracksByCategory(req.params.id.trim());
-        res.json(tracks);
+
+        // Make URLs absolute
+        const absoluteTracks = tracks.map((track: any) => {
+            const trackObj = track.toObject ? track.toObject() : track;
+            return {
+                ...trackObj,
+                artworkUrl: getFullUrl(req, trackObj.artworkUrl),
+                audioUrl: getFullUrl(req, trackObj.audioUrl)
+            };
+        });
+
+        res.json(absoluteTracks);
     } catch (error: any) {
         console.error("Error getting tracks by category:", error);
         res.status(500).json({
@@ -176,6 +237,17 @@ export const getTracks = async (req: Request, res: Response) => {
         }
 
         const result = await playlistService.getTracks(page, limit, categoryId, search);
+
+        // Make URLs absolute
+        result.tracks = result.tracks.map((track: any) => {
+            const trackObj = track.toObject ? track.toObject() : track;
+            return {
+                ...trackObj,
+                artworkUrl: getFullUrl(req, trackObj.artworkUrl),
+                audioUrl: getFullUrl(req, trackObj.audioUrl)
+            };
+        });
+
         res.json(result);
     } catch (error: any) {
         console.error("Error getting tracks:", error);
@@ -226,6 +298,10 @@ export const createCategory = async (req: Request, res: Response) => {
         };
 
         const category = await playlistService.addCategory(categoryData);
+        // Make URL absolute in response
+        if (category) {
+            category.artworkUrl = getFullUrl(req, category.artworkUrl);
+        }
         res.status(201).json(category);
     } catch (err: any) {
         console.error("Error creating category:", err);
@@ -367,6 +443,13 @@ export const createTrack = async (req: Request, res: Response) => {
         console.log("Adding track to DB:", trackData);
         const track = await playlistService.addTrack(trackData);
         console.log("Track added successfully");
+
+        // Make URLs absolute in response
+        if (track) {
+            track.artworkUrl = getFullUrl(req, track.artworkUrl);
+            track.audioUrl = getFullUrl(req, track.audioUrl);
+        }
+
         res.status(201).json(track);
     } catch (err: any) {
         console.error("Error creating track:", err);
@@ -438,6 +521,10 @@ export const updateCategory = async (req: Request, res: Response) => {
             req.params.id,
             updateData
         );
+        // Make URL absolute in response
+        if (updated) {
+            updated.artworkUrl = getFullUrl(req, updated.artworkUrl);
+        }
         res.json(updated);
     } catch (err: any) {
         console.error("Error updating category:", err);
@@ -567,6 +654,11 @@ export const updateTrack = async (req: Request, res: Response) => {
             req.params.id,
             updateData
         );
+        // Make URLs absolute in response
+        if (updated) {
+            updated.artworkUrl = getFullUrl(req, updated.artworkUrl);
+            updated.audioUrl = getFullUrl(req, updated.audioUrl);
+        }
         res.json(updated);
     } catch (err: any) {
         console.error("Error updating track:", err);
