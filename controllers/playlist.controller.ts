@@ -26,6 +26,38 @@ const autoTimestampLRC = (transcript: any[], durationMs: number): any[] => {
 };
 
 
+import { bucket } from "../config/database.js";
+import { ObjectId } from "mongodb";
+
+// GET /media/:id
+export const streamMedia = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        if (!ObjectId.isValid(id)) {
+            return res.status(400).json({ message: "Invalid media ID" });
+        }
+
+        const _id = new ObjectId(id);
+        const files = await bucket.find({ _id }).toArray();
+
+        if (!files || files.length === 0) {
+            return res.status(404).json({ message: "Media not found" });
+        }
+
+        const file = files[0];
+        res.setHeader("Content-Type", file.metadata?.contentType || "application/octet-stream");
+        res.setHeader("Content-Length", file.length);
+        res.setHeader("Accept-Ranges", "bytes");
+
+        const downloadStream = bucket.openDownloadStream(_id);
+        downloadStream.pipe(res);
+    } catch (error: any) {
+        console.error("Error streaming media:", error);
+        res.status(500).json({ message: "Internal server error" });
+    }
+};
+
+
 /* -------------------- READ -------------------- */
 
 // GET /playlist
@@ -154,7 +186,7 @@ export const getTracks = async (req: Request, res: Response) => {
     }
 };
 
-import { uploadToCloudinary } from "../services/upload.service.js";
+import { uploadFile } from "../services/upload.service.js";
 
 /* -------------------- CREATE -------------------- */
 
@@ -173,10 +205,10 @@ export const createCategory = async (req: Request, res: Response) => {
 
         // Handle file upload if present
         if (req.file) {
-            const upload = await uploadToCloudinary(req.file, undefined, 'bhakti-bits/categories');
+            const upload = await uploadFile(req.file, undefined, 'bhakti-bits/categories');
             artworkUrl = upload.url;
         } else if (artworkUrl && artworkUrl.includes('drive.google.com')) {
-            const upload = await uploadToCloudinary(undefined, artworkUrl, 'bhakti-bits/categories');
+            const upload = await uploadFile(undefined, artworkUrl, 'bhakti-bits/categories');
             artworkUrl = upload.url;
         }
 
@@ -243,30 +275,29 @@ export const createTrack = async (req: Request, res: Response) => {
         let audioUrl = req.body.audioUrl || "";
         let durationMs = parseInt(req.body.durationMs) || 0;
 
+        const uploadPromises = [];
+
         // Upload Artwork if file or GDrive URL
         if (files?.artwork?.[0]) {
-            const upload = await uploadToCloudinary(files.artwork[0], undefined, 'bhakti-bits/artworks');
-            artworkUrl = upload.url;
+            uploadPromises.push(uploadFile(files.artwork[0], undefined, 'bhakti-bits/artworks').then(res => artworkUrl = res.url));
         } else if (artworkUrl && (artworkUrl.includes('drive.google.com') || artworkUrl.includes('res.cloudinary.com'))) {
-            const upload = await uploadToCloudinary(undefined, artworkUrl, 'bhakti-bits/artworks');
-            artworkUrl = upload.url;
-        }
-
-        // Validate artworkUrl is provided
-        if (!artworkUrl || artworkUrl.trim() === "") {
-            return res.status(400).json({ message: "Artwork URL or file is required" });
+            uploadPromises.push(uploadFile(undefined, artworkUrl, 'bhakti-bits/artworks').then(res => artworkUrl = res.url));
         }
 
         // Upload Audio if file or GDrive URL
         if (files?.audio?.[0]) {
-            const upload = await uploadToCloudinary(files.audio[0], undefined, 'bhakti-bits/tracks');
-            audioUrl = upload.url;
-            durationMs = upload.duration;
+            uploadPromises.push(uploadFile(files.audio[0], undefined, 'bhakti-bits/tracks').then(res => {
+                audioUrl = res.url;
+                durationMs = res.duration;
+            }));
         } else if (audioUrl && (audioUrl.includes('drive.google.com') || audioUrl.includes('res.cloudinary.com'))) {
-            const upload = await uploadToCloudinary(undefined, audioUrl, 'bhakti-bits/tracks');
-            audioUrl = upload.url;
-            durationMs = upload.duration;
+            uploadPromises.push(uploadFile(undefined, audioUrl, 'bhakti-bits/tracks').then(res => {
+                audioUrl = res.url;
+                durationMs = res.duration;
+            }));
         }
+
+        await Promise.all(uploadPromises);
 
         // Validate audioUrl is provided
         if (!audioUrl || audioUrl.trim() === "") {
@@ -391,10 +422,10 @@ export const updateCategory = async (req: Request, res: Response) => {
         }
 
         if (req.file) {
-            const upload = await uploadToCloudinary(req.file, undefined, 'bhakti-bits/categories');
+            const upload = await uploadFile(req.file, undefined, 'bhakti-bits/categories');
             updateData.artworkUrl = upload.url;
         } else if (updateData.artworkUrl && updateData.artworkUrl.includes('drive.google.com')) {
-            const upload = await uploadToCloudinary(undefined, updateData.artworkUrl, 'bhakti-bits/categories');
+            const upload = await uploadFile(undefined, updateData.artworkUrl, 'bhakti-bits/categories');
             updateData.artworkUrl = upload.url;
         }
 
@@ -505,23 +536,27 @@ export const updateTrack = async (req: Request, res: Response) => {
             updateData.categoryId = updateData.categoryId.trim();
         }
 
+        const uploadPromises = [];
+
         if (files?.artwork?.[0]) {
-            const upload = await uploadToCloudinary(files.artwork[0], undefined, 'bhakti-bits/artworks');
-            updateData.artworkUrl = upload.url;
+            uploadPromises.push(uploadFile(files.artwork[0], undefined, 'bhakti-bits/artworks').then(res => updateData.artworkUrl = res.url));
         } else if (updateData.artworkUrl && updateData.artworkUrl.includes('drive.google.com')) {
-            const upload = await uploadToCloudinary(undefined, updateData.artworkUrl, 'bhakti-bits/artworks');
-            updateData.artworkUrl = upload.url;
+            uploadPromises.push(uploadFile(undefined, updateData.artworkUrl, 'bhakti-bits/artworks').then(res => updateData.artworkUrl = res.url));
         }
 
         if (files?.audio?.[0]) {
-            const upload = await uploadToCloudinary(files.audio[0], undefined, 'bhakti-bits/tracks');
-            updateData.audioUrl = upload.url;
-            updateData.durationMs = upload.duration;
+            uploadPromises.push(uploadFile(files.audio[0], undefined, 'bhakti-bits/tracks').then(res => {
+                updateData.audioUrl = res.url;
+                updateData.durationMs = res.duration;
+            }));
         } else if (updateData.audioUrl && updateData.audioUrl.includes('drive.google.com')) {
-            const upload = await uploadToCloudinary(undefined, updateData.audioUrl, 'bhakti-bits/tracks');
-            updateData.audioUrl = upload.url;
-            updateData.durationMs = upload.duration;
+            uploadPromises.push(uploadFile(undefined, updateData.audioUrl, 'bhakti-bits/tracks').then(res => {
+                updateData.audioUrl = res.url;
+                updateData.durationMs = res.duration;
+            }));
         }
+
+        await Promise.all(uploadPromises);
 
         // Handle durationMs if provided
         if (updateData.durationMs !== undefined) {

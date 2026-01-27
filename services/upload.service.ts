@@ -1,76 +1,96 @@
-import cloudinary from '../config/cloudinary.js';
+import { v4 as uuidv4 } from 'uuid';
 import * as mm from 'music-metadata';
-import { Readable } from 'stream';
+import axios from 'axios';
+import { BASE_URL } from '../config/env.js';
+import { bucket } from '../config/database.js';
+import { PassThrough, Readable } from 'stream';
 
-export const uploadToCloudinary = async (file: Express.Multer.File | undefined, url: string | undefined, folder: string) => {
+export const uploadFile = async (file: Express.Multer.File | undefined, url: string | undefined, folder: string) => {
     let finalUrl = '';
     let duration = 0;
-    let publicId = '';
+    let fileId = uuidv4();
 
     if (file) {
-        if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
-            throw new Error("Cloudinary credentials are missing on the server");
-        }
+        // Parallelize upload and metadata extraction for buffers
+        const uploadPromise = new Promise<void>((resolve, reject) => {
+            const uploadStream = bucket.openUploadStream(file.originalname, {
+                metadata: { folder, uuid: fileId, contentType: file.mimetype }
+            });
 
-        // Use upload_stream for better memory handling with large files
-        const uploadResult = await new Promise<any>((resolve, reject) => {
-            const uploadStream = cloudinary.uploader.upload_stream(
-                {
-                    resource_type: 'auto',
-                    folder: folder
-                },
-                (error: any, result: any) => {
-                    if (error) {
-                        console.error("Cloudinary upload error:", error);
-                        reject(new Error(error.message || "Cloudinary upload failed"));
-                    } else {
-                        resolve(result);
-                    }
-                }
-            );
+            // Capture the ID immediately
+            finalUrl = `${BASE_URL}/media/${uploadStream.id}`;
 
-            const fileStream = Readable.from(file.buffer);
-            fileStream.pipe(uploadStream);
+            Readable.from(file.buffer).pipe(uploadStream)
+                .on('error', reject)
+                .on('finish', () => resolve());
         });
 
-        finalUrl = uploadResult.secure_url;
-        publicId = uploadResult.public_id;
-
-        // Extract duration for audio/video files
-        // Note: For stream uploads, we still rely on the buffer for metadata extraction
-        // which implies the file is in memory (due to multer memoryStorage).
-        // Cloudinary also returns duration for video/audio resources.
-        if (file.mimetype.startsWith('audio') || uploadResult.resource_type === 'video') {
-            try {
-                // Try getting duration from Cloudinary first
-                if (uploadResult.duration) {
-                    duration = Math.round(uploadResult.duration * 1000);
-                } else {
-                    // Fallback to music-metadata
-                    const metadata = await mm.parseBuffer(file.buffer);
-                    duration = Math.round((metadata.format.duration || 0) * 1000);
-                }
-            } catch (err) {
+        const metadataPromise = (file.mimetype.startsWith('audio'))
+            ? mm.parseBuffer(file.buffer).then(meta => {
+                duration = Math.round((meta.format.duration || 0) * 1000);
+            }).catch(err => {
                 console.error('Error parsing metadata:', err);
-            }
-        }
+            })
+            : Promise.resolve();
+
+        await Promise.all([uploadPromise, metadataPromise]);
+
     } else if (url && (url.startsWith('http') || url.includes('drive.google.com'))) {
-        let uploadUrl = url;
+        let downloadUrl = url;
         if (url.includes('drive.google.com')) {
             const fileIdMatch = url.match(/\/d\/([^\/]+)/);
             if (fileIdMatch && fileIdMatch[1]) {
-                uploadUrl = `https://drive.google.com/uc?export=download&id=${fileIdMatch[1]}`;
+                downloadUrl = `https://drive.google.com/uc?export=download&id=${fileIdMatch[1]}`;
             }
         }
 
-        const result = await cloudinary.uploader.upload(uploadUrl, {
-            resource_type: 'auto',
-            folder: folder
-        });
-        finalUrl = result.secure_url;
-        publicId = result.public_id;
-        duration = Math.round((result.duration || 0) * 1000);
+        try {
+            // Use streaming for external URLs to avoid memory bottlenecks
+            const response = await axios.get(downloadUrl, { responseType: 'stream' });
+            const contentType = response.headers['content-type'] || 'application/octet-stream';
+            const filename = url.split('/').pop()?.split('?')[0] || 'downloaded_file';
+
+            const uploadStream = bucket.openUploadStream(filename, {
+                metadata: { folder, uuid: fileId, contentType: contentType }
+            });
+            finalUrl = `${BASE_URL}/media/${uploadStream.id}`;
+
+            if (contentType.startsWith('audio')) {
+                // We need to split the stream to both upload and parse metadata
+                const uploadPassThrough = new PassThrough();
+                const metadataPassThrough = new PassThrough();
+
+                response.data.pipe(uploadPassThrough);
+                response.data.pipe(metadataPassThrough);
+
+                const uploadPromise = new Promise<void>((resolve, reject) => {
+                    uploadPassThrough.pipe(uploadStream)
+                        .on('error', reject)
+                        .on('finish', resolve);
+                });
+
+                const metadataPromise = mm.parseStream(metadataPassThrough)
+                    .then((meta: mm.IAudioMetadata) => {
+                        duration = Math.round((meta.format.duration || 0) * 1000);
+                    })
+                    .catch((err: any) => console.error('Metadata parsing error:', err));
+
+                await Promise.all([uploadPromise, metadataPromise]);
+            } else {
+                // Just pipe directly for non-audio (no metadata needed)
+                await new Promise((resolve, reject) => {
+                    response.data.pipe(uploadStream)
+                        .on('error', reject)
+                        .on('finish', resolve);
+                });
+            }
+        } catch (error: any) {
+            console.error("External URL download error:", error.message);
+            finalUrl = url; // Fallback to original URL if download fails
+        }
     }
 
-    return { url: finalUrl, duration, publicId };
+    return { url: finalUrl, duration, publicId: fileId };
 };
+
+export const uploadToCloudinary = uploadFile;

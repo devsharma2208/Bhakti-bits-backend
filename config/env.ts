@@ -2,6 +2,7 @@ import "dotenv/config";
 import path from "path";
 
 export const PORT = process.env.PORT || 4000;
+export const BASE_URL = process.env.BASE_URL || `http://localhost:${PORT}`;
 
 export const PLAYLIST_PATH =
     process.env.PLAYLIST_PATH || path.join(process.cwd(), "playlist.json");

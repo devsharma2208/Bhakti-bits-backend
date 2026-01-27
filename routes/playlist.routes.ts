@@ -13,10 +13,12 @@ import {
     deleteTrack,
     getTracks,
     getStats,
+    streamMedia,
 } from "../controllers/playlist.controller.js";
 import multer from 'multer';
 
 const router = Router();
+router.get("/media/:id", streamMedia);
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
 

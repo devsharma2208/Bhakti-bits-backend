@@ -1,5 +1,8 @@
 import mongoose from "mongoose";
 import { MONGO_URL } from "./env.js";
+import { GridFSBucket } from "mongodb";
+
+export let bucket: GridFSBucket;
 
 export const connectDB = async () => {
     try {
@@ -7,7 +10,16 @@ export const connectDB = async () => {
             console.error("MONGO_URL is not defined in .env file");
             process.exit(1);
         }
-        await mongoose.connect(MONGO_URL);
+        const conn = await mongoose.connect(MONGO_URL);
+
+        // Initialize GridFS bucket
+        const db = conn.connection.db;
+        if (db) {
+            bucket = new GridFSBucket(db, {
+                bucketName: "uploads"
+            });
+        }
+
         console.log("MongoDB connected successfully");
     } catch (error) {
         console.error("MongoDB connection error:", error);
