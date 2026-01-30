@@ -6,7 +6,9 @@ const getFullUrl = (req: Request, url: string) => {
     if (!url || url.startsWith('http')) return url;
     // Handle both relative paths and IDs
     const path = url.startsWith('/') ? url : `/media/${url}`;
-    const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+
+    // In production (Render), we want to ensure https
+    const protocol = req.headers['x-forwarded-proto'] || (req.get('host')?.includes('render.com') ? 'https' : req.protocol);
     const host = req.get('host');
     return `${protocol}://${host}${path}`;
 };
@@ -77,17 +79,23 @@ export const getPlaylist = async (req: Request, res: Response) => {
 
         // Make URLs absolute
         if (body.categories) {
-            body.categories = body.categories.map((cat: any) => ({
-                ...cat,
-                artworkUrl: getFullUrl(req, cat.artworkUrl)
-            }));
+            body.categories = body.categories.map((cat: any) => {
+                const catObj = cat.toObject ? cat.toObject() : cat;
+                return {
+                    ...catObj,
+                    artworkUrl: getFullUrl(req, catObj.artworkUrl)
+                };
+            });
         }
         if (body.tracks) {
-            body.tracks = body.tracks.map((track: any) => ({
-                ...track,
-                artworkUrl: getFullUrl(req, track.artworkUrl),
-                audioUrl: getFullUrl(req, track.audioUrl)
-            }));
+            body.tracks = body.tracks.map((track: any) => {
+                const trackObj = track.toObject ? track.toObject() : track;
+                return {
+                    ...trackObj,
+                    artworkUrl: getFullUrl(req, trackObj.artworkUrl),
+                    audioUrl: getFullUrl(req, trackObj.audioUrl)
+                };
+            });
         }
 
         if (ifNoneMatch && ifNoneMatch === etag) {
@@ -300,7 +308,9 @@ export const createCategory = async (req: Request, res: Response) => {
         const category = await playlistService.addCategory(categoryData);
         // Make URL absolute in response
         if (category) {
-            category.artworkUrl = getFullUrl(req, category.artworkUrl);
+            const categoryObj = category.toObject();
+            categoryObj.artworkUrl = getFullUrl(req, categoryObj.artworkUrl);
+            return res.status(201).json(categoryObj);
         }
         res.status(201).json(category);
     } catch (err: any) {
@@ -446,8 +456,10 @@ export const createTrack = async (req: Request, res: Response) => {
 
         // Make URLs absolute in response
         if (track) {
-            track.artworkUrl = getFullUrl(req, track.artworkUrl);
-            track.audioUrl = getFullUrl(req, track.audioUrl);
+            const trackObj = track.toObject();
+            trackObj.artworkUrl = getFullUrl(req, trackObj.artworkUrl);
+            trackObj.audioUrl = getFullUrl(req, trackObj.audioUrl);
+            return res.status(201).json(trackObj);
         }
 
         res.status(201).json(track);
@@ -523,7 +535,9 @@ export const updateCategory = async (req: Request, res: Response) => {
         );
         // Make URL absolute in response
         if (updated) {
-            updated.artworkUrl = getFullUrl(req, updated.artworkUrl);
+            const updatedObj = updated.toObject();
+            updatedObj.artworkUrl = getFullUrl(req, updatedObj.artworkUrl);
+            return res.json(updatedObj);
         }
         res.json(updated);
     } catch (err: any) {
@@ -656,8 +670,10 @@ export const updateTrack = async (req: Request, res: Response) => {
         );
         // Make URLs absolute in response
         if (updated) {
-            updated.artworkUrl = getFullUrl(req, updated.artworkUrl);
-            updated.audioUrl = getFullUrl(req, updated.audioUrl);
+            const updatedObj = updated.toObject();
+            updatedObj.artworkUrl = getFullUrl(req, updatedObj.artworkUrl);
+            updatedObj.audioUrl = getFullUrl(req, updatedObj.audioUrl);
+            return res.json(updatedObj);
         }
         res.json(updated);
     } catch (err: any) {
