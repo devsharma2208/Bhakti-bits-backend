@@ -1,7 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
 import * as mm from 'music-metadata';
 import axios from 'axios';
-import { BASE_URL } from '../config/env.js';
 import { bucket } from '../config/database.js';
 import { PassThrough, Readable } from 'stream';
 
@@ -18,7 +17,7 @@ export const uploadFile = async (file: Express.Multer.File | undefined, url: str
             });
 
             // Capture the ID immediately
-            finalUrl = `${BASE_URL}/media/${uploadStream.id}`;
+            finalUrl = uploadStream.id.toString();
 
             Readable.from(file.buffer).pipe(uploadStream)
                 .on('error', reject)
@@ -53,7 +52,7 @@ export const uploadFile = async (file: Express.Multer.File | undefined, url: str
             const uploadStream = bucket.openUploadStream(filename, {
                 metadata: { folder, uuid: fileId, contentType: contentType }
             });
-            finalUrl = `${BASE_URL}/media/${uploadStream.id}`;
+            finalUrl = uploadStream.id.toString();
 
             if (contentType.startsWith('audio')) {
                 // We need to split the stream to both upload and parse metadata
