@@ -9,7 +9,7 @@ declare global {
                 size: number;
                 destination: string;
                 filename: string;
-                path: string;
+                path: string; 
                 buffer: Buffer;
             }
         }
